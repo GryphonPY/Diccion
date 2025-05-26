@@ -10008,7 +10008,7 @@ var App = class {
       this.showFatalError("La variable de entorno API_KEY no est\xE1 configurada.");
       throw new Error("La variable de entorno API_KEY no est\xE1 configurada.");
     }
-    this.genAI = new GoogleGenAI({ apiKey: "AIzaSyC74W0PCev8Xs5d4bLpvUax5KILqNPZgnw" });
+    this.genAI = new GoogleGenAI({ apiKey: "AIzaSyAPlhqR6u8ZXpb9-PxSHvWGIR1ZqZdIats" });
     this.markdownParser = marked;
     this.editorTitle = document.querySelector(".editor-title");
     this.polishedNote = document.getElementById("polishedNote");
