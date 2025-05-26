@@ -1,17 +1,19 @@
 
-import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import { marked } from "marked";
 
-const MODEL_NAME = "gemini-2.5-flash-preview-04-17";
+// No se importa GoogleGenAI directamente aquí en el frontend para la API key.
+
+const MODEL_NAME = "gemini-2.5-flash-preview-04-17"; // Aún útil para la función serverless
 const LIVE_WAVEFORM_SAMPLES = 256;
+const NETLIFY_FUNCTION_PATH = "/.netlify/functions/gemini-proxy";
 
 interface Note {
   id: string;
   title: string;
-  rawText: string; // HTML content from rawTranscription div
-  polishedHTML: string; // HTML content from polishedNote div
-  polishedMarkdown?: string; // Raw markdown from Gemini for polished note
-  polishModeUsed: string; // e.g., 'standard', 'concise_summary', 'custom'
+  rawText: string; 
+  polishedHTML: string; 
+  polishedMarkdown?: string; 
+  polishModeUsed: string; 
   customPromptUsed?: string;
   createdAt: number;
   lastModified: number;
@@ -25,7 +27,7 @@ interface PromptTemplate {
 }
 
 class App {
-  private genAI: GoogleGenAI;
+  // private genAI: GoogleGenAI; // Eliminado
   private editorTitle: HTMLDivElement;
   private polishedNote: HTMLDivElement;
   private rawTranscription: HTMLDivElement;
@@ -57,15 +59,15 @@ class App {
 
   private polishOptionsModal: HTMLDivElement;
   private closePolishOptionsModalButton: HTMLButtonElement;
-  private polishModeSelect: HTMLSelectElement; // In modal
+  private polishModeSelect: HTMLSelectElement; 
   private customPromptContainer: HTMLDivElement;
   private customPromptTemplateContainer: HTMLDivElement; 
   private customPromptTemplateSelect: HTMLSelectElement; 
   private customPromptTextarea: HTMLTextAreaElement;
   private applyPolishOptionsButton: HTMLButtonElement;
   
-  private currentNotePolishModeSelect: HTMLSelectElement; // New, in note header
-  private topCopyPolishedButton: HTMLButtonElement; // New, top-right of polished note
+  private currentNotePolishModeSelect: HTMLSelectElement; 
+  private topCopyPolishedButton: HTMLButtonElement; 
 
   private copyPolishedButton: HTMLButtonElement;
   private exportPolishedTxtButton: HTMLButtonElement; 
@@ -91,7 +93,6 @@ class App {
   private pendingAudioFile: File | null = null;
   private pendingAudioUploadEventTarget: HTMLInputElement | null = null;
 
-
   private mediaRecorder: MediaRecorder | null = null;
   private audioChunks: Blob[] = [];
   private audioContext: AudioContext | null = null;
@@ -116,7 +117,6 @@ class App {
   private autosaveTimeout: number | null = null;
   private statusClearTimeout: number | null = null; 
 
-
   private readonly promptTemplates: PromptTemplate[] = [
     { name: "Seleccionar plantilla...", value: "" },
     { name: "Resumir para email", value: "Resume el siguiente texto para incluirlo en un email conciso. Enfócate en los puntos principales y acciones requeridas. Formatea en markdown. Asegúrate de que la respuesta esté en español." },
@@ -127,13 +127,9 @@ class App {
     { name: "Explicar como si tuviera 5 años", value: "Explain the following concept or text as if I were 5 years old. Use simple words and short sentences. Format in markdown. Ensure the response is in Spanish." },
   ];
 
-
   constructor() {
-    if (!process.env.API_KEY) {
-      this.showFatalError("La variable de entorno API_KEY no está configurada.");
-      throw new Error("La variable de entorno API_KEY no está configurada.");
-    }
-    this.genAI = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    // No se inicializa this.genAI aquí, ni se verifica API_KEY.
+    // La función Netlify se encargará de la API Key.
     this.markdownParser = marked;
 
     this.editorTitle = document.querySelector(".editor-title") as HTMLDivElement;
@@ -162,13 +158,12 @@ class App {
     this.importHistoryButton = document.getElementById("importHistoryButton") as HTMLButtonElement;
     this.importHistoryInput = document.getElementById("importHistoryInput") as HTMLInputElement;
 
-
     this.audioUploadInput = document.getElementById("audioUploadInput") as HTMLInputElement;
     this.audioUploadButton = document.getElementById("audioUploadButton") as HTMLButtonElement;
     
     this.polishOptionsModal = document.getElementById("polishOptionsModal") as HTMLDivElement;
     this.closePolishOptionsModalButton = document.getElementById("closePolishOptionsModalButton") as HTMLButtonElement;
-    this.polishModeSelect = document.getElementById("polishModeSelect") as HTMLSelectElement; // In modal
+    this.polishModeSelect = document.getElementById("polishModeSelect") as HTMLSelectElement; 
     this.customPromptContainer = document.getElementById("customPromptContainer") as HTMLDivElement;
     this.customPromptTemplateContainer = document.getElementById("customPromptTemplateContainer") as HTMLDivElement;
     this.customPromptTemplateSelect = document.getElementById("customPromptTemplateSelect") as HTMLSelectElement;
@@ -218,7 +213,6 @@ class App {
     this.loadInitialNote();
     this.updateAllButtonStates();
     this.updateAllWordCharCounts();
-
   }
 
   private showFatalError(message: string): void {
@@ -366,7 +360,7 @@ class App {
     this.confirmAudioUploadCreateNewButton.addEventListener('click', () => {
         this.hideConfirmAudioUploadModal();
         if (this.pendingAudioFile && this.pendingAudioUploadEventTarget) {
-            this.createNewNoteUIAction(); // Creates and sets a new currentNote
+            this.createNewNoteUIAction(); 
             this.proceedWithAudioProcessing(this.pendingAudioFile, this.pendingAudioUploadEventTarget);
         }
     });
@@ -881,7 +875,6 @@ class App {
         this.showConfirmAudioUploadModal();
         return; 
     }
-    // If note is empty, proceed directly
     this.proceedWithAudioProcessing(file, input);
   }
 
@@ -939,7 +932,7 @@ class App {
       console.error("Error procesando archivo de audio:", error);
       this.updateStatus(`Error al cargar archivo: ${error.message}.`, "error", 5000);
     } finally {
-        this.clearPendingAudioUpload(); // Clears pending file and resets input
+        this.clearPendingAudioUpload(); 
     }
   }
 
@@ -958,7 +951,7 @@ class App {
 
   private clearPendingAudioUpload(): void {
     if (this.pendingAudioUploadEventTarget) {
-        this.pendingAudioUploadEventTarget.value = ""; // Reset file input
+        this.pendingAudioUploadEventTarget.value = ""; 
     }
     this.pendingAudioFile = null;
     this.pendingAudioUploadEventTarget = null;
@@ -1258,12 +1251,9 @@ class App {
       this.historyButton.disabled = disabled;
 
       if (isRecordingRelated) {
-        // When recording starts (disabled = true), disable polish buttons
-        // When recording stops (disabled = false), enable polish buttons if raw text exists
         this.polishTextButton.disabled = disabled || this.isRawTranscriptionEmpty();
         this.retryPolishButton.disabled = disabled || this.isRawTranscriptionEmpty();
       } else {
-        // Non-recording related state updates (e.g., initial load, new note)
         this.polishTextButton.disabled = this.isRawTranscriptionEmpty();
         this.retryPolishButton.disabled = this.isRawTranscriptionEmpty();
       }
@@ -1273,15 +1263,12 @@ class App {
     const isRecording = this.mediaRecorder?.state === "recording";
     this.setControlsDisabledState(isRecording, true);
 
-    // Update states for polish/retry buttons based on raw transcription content
     const rawIsEmpty = this.isRawTranscriptionEmpty();
     this.polishTextButton.disabled = rawIsEmpty || isRecording;
     this.retryPolishButton.disabled = rawIsEmpty || isRecording;
 
-    // Update state for top copy button based on polished note content
     this.updateTopCopyButtonVisibility();
 
-    // Update states for content action buttons
     const polishedIsEmpty = this.isPolishedNoteEmpty();
     this.copyPolishedButton.disabled = polishedIsEmpty;
     this.exportPolishedTxtButton.disabled = polishedIsEmpty;
@@ -1295,13 +1282,9 @@ class App {
   }
 
   private isRawTranscriptionEmpty(): boolean {
-    // If the placeholder is currently active, the content is considered empty.
     if (this.rawTranscription.classList.contains('placeholder-active')) {
       return true;
     }
-    // If the placeholder is not active, check if the actual content (trimmed) is empty.
-    // This covers cases where the user might have entered only whitespace after placeholder was removed,
-    // or pasted content.
     const liveText = this.getPlainText(this.rawTranscription.innerHTML);
     return liveText.trim() === "";
   }
@@ -1337,7 +1320,7 @@ class App {
     let x = 0;
 
     for (let i = 0; i < this.analyserNode.frequencyBinCount; i++) {
-      const v = this.waveformDataArray[i] / 128.0; // value between 0 and 2
+      const v = this.waveformDataArray[i] / 128.0; 
       const y = v * this.liveWaveformCanvas.height / 2;
 
       if (i === 0) {
@@ -1357,7 +1340,7 @@ class App {
     const totalSeconds = Math.floor(elapsed / 1000);
     const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
     const seconds = (totalSeconds % 60).toString().padStart(2, '0');
-    const milliseconds = Math.floor((elapsed % 1000) / 10).toString().padStart(2, '0'); // Show hundredths
+    const milliseconds = Math.floor((elapsed % 1000) / 10).toString().padStart(2, '0'); 
     this.liveRecordingTimerDisplay.textContent = `${minutes}:${seconds}.${milliseconds}`;
   }
 
@@ -1388,7 +1371,6 @@ class App {
         
         this.updateStatus("Transcripción completada.", "success", 2000);
         
-        // Switch to Raw Text tab
         const rawTabButton = document.querySelector('.tab-button[data-tab="raw"]') as HTMLButtonElement;
         if (rawTabButton && typeof (window as any).setActiveTab === 'function') {
             (window as any).setActiveTab(rawTabButton);
@@ -1420,50 +1402,61 @@ class App {
     });
   }
 
-  private async getTranscription(base64Audio: string, audioMimeType: string): Promise<string> {
+  private async callNetlifyFunction(payload: any): Promise<any> {
     try {
-      this.updateStatus("Transcribiendo con Gemini...", "active");
-      const audioPart = { inlineData: { mimeType: audioMimeType, data: base64Audio } };
-      const textPart = { text: "Transcribe this audio accurately. Respond only with the transcription." };
-      
-      const response: GenerateContentResponse = await this.genAI.models.generateContent({
-        model: MODEL_NAME, 
-        contents: { parts: [audioPart, textPart] },
+      const response = await fetch(NETLIFY_FUNCTION_PATH, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
 
-      const textFromResult = response.text;
-      const transcription = typeof textFromResult === 'string' ? textFromResult : await textFromResult;
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(errorData.error || `Error del servidor: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error: any) {
+       console.error("Error llamando a la función Netlify:", error);
+       this.updateStatus(`Error de comunicación: ${error.message}`, "error", 5000);
+       throw error;
+    }
+  }
 
-      if (!transcription || transcription.trim() === "") {
-        this.updateStatus("Gemini no pudo transcribir el audio o está vacío.", "active", 3000);
+  private async getTranscription(base64Audio: string, audioMimeType: string): Promise<string> {
+    this.updateStatus("Transcribiendo...", "active");
+    try {
+      const response = await this.callNetlifyFunction({
+        action: "transcribe",
+        audioData: base64Audio,
+        mimeType: audioMimeType,
+      });
+      
+      if (!response.transcription || response.transcription.trim() === "") {
+        this.updateStatus("No se pudo transcribir el audio o está vacío.", "active", 3000);
         return "";
       }
-      this.updateStatus("Transcripción recibida de Gemini.", "success", 1500);
-      return transcription;
-    } catch (error: any) {
-      console.error("Error en la transcripción con Gemini:", error);
-      this.updateStatus(`Error de Gemini al transcribir: ${error.message || 'Desconocido'}`, "error", 5000);
+      this.updateStatus("Transcripción recibida.", "success", 1500);
+      return response.transcription;
+    } catch (error) {
+      // El error ya se muestra en callNetlifyFunction
       throw error;
     }
   }
   
   private async generateTitleForNote(textSample: string): Promise<string> {
-      if (!textSample || textSample.trim().length < 10) { 
-          return `Nota ${new Date().toLocaleDateString()}`;
-      }
-      try {
-          const prompt = `Generate a very short, concise title (max 5 words, ideally 2-3) for the following text. Respond only with the title itself, no extra explanations. The text is in Spanish, provide title in Spanish:\n\n${textSample}`;
-          const geminiResponse = await this.genAI.models.generateContent({
-              model: MODEL_NAME,
-              contents: prompt
-          });
-          const textFromResult = geminiResponse.text;
-          const title = typeof textFromResult === 'string' ? textFromResult : await textFromResult;
-          return title.trim().replace(/^"|"$/g, ''); // Remove surrounding quotes if any
-      } catch (error) {
-          console.error("Error generando título con Gemini:", error);
-          return `Nota ${new Date().toLocaleDateString()}`; // Fallback title
-      }
+    if (!textSample || textSample.trim().length < 10) { 
+        return `Nota ${new Date().toLocaleDateString()}`;
+    }
+    try {
+      const response = await this.callNetlifyFunction({
+        action: "generateTitle",
+        text: textSample,
+      });
+      return response.title.trim().replace(/^"|"$/g, '') || `Nota ${new Date().toLocaleDateString()}`;
+    } catch (error) {
+      console.error("Error generando título vía Netlify function:", error);
+      return `Nota ${new Date().toLocaleDateString()}`; // Fallback title
+    }
   }
 
   private handleManualPolishWithCurrentSettings(): void {
@@ -1472,18 +1465,15 @@ class App {
         return;
     }
     
-    // Update current note's polish mode based on the header dropdown before polishing
     const selectedModeInHeader = this.currentNotePolishModeSelect.value as PolishMode;
     this.currentPolishMode = selectedModeInHeader;
     this.currentNote.polishModeUsed = selectedModeInHeader;
 
     if (selectedModeInHeader === "custom") {
-        // If the user chose "custom" from header, but hasn't set a prompt via modal,
-        // use existing custom prompt in currentNote if any, or open modal.
         if (!this.currentNote.customPromptUsed && !this.customPromptTextarea.value.trim()) {
             this.updateStatus("Modo personalizado seleccionado. Por favor, define un prompt.", "active", 3000);
-            this.polishModeSelect.value = "custom"; // Ensure modal shows custom
-            this.customPromptTextarea.value = this.currentCustomPolishPrompt || ""; // Preload if any
+            this.polishModeSelect.value = "custom"; 
+            this.customPromptTextarea.value = this.currentCustomPolishPrompt || ""; 
             this.handlePolishModeChangeInModal();
             this.togglePolishOptionsModal(true);
             return;
@@ -1494,11 +1484,11 @@ class App {
         this.currentCustomPolishPrompt = "";
         delete this.currentNote.customPromptUsed;
     }
-    this.saveCurrentNote(false); // Save potential mode/custom prompt changes
-    this.polishText(this.currentNote.rawText); // Pass current raw text from the note object
+    this.saveCurrentNote(false); 
+    this.polishText(this.currentNote.rawText); 
   }
 
-  private async polishText(rawTextHTML: string): Promise<void> { // Parameter is HTML from rawTranscription
+  private async polishText(rawTextHTML: string): Promise<void> { 
     if (!this.currentNote) return;
     const plainRawText = this.getPlainText(rawTextHTML);
 
@@ -1507,7 +1497,7 @@ class App {
       return;
     }
     try {
-      this.updateStatus("Puliendo con Gemini...", "active"); 
+      this.updateStatus("Puliendo...", "active"); 
       const polishedResult = await this.getPolishedNoteFromText(plainRawText, this.currentPolishMode, this.currentCustomPolishPrompt);
       
       if (
@@ -1533,76 +1523,37 @@ class App {
       this.saveCurrentNote(true);
       this.updateUIFromCurrentNote();
 
-      this.updateStatus("Nota pulida con Gemini.", "success", 2000);
+      this.updateStatus("Nota pulida.", "success", 2000);
 
-      // Switch to Polished Note tab
       const polishedTabButton = document.querySelector('.tab-button[data-tab="note"]') as HTMLButtonElement;
       if (polishedTabButton && typeof (window as any).setActiveTab === 'function') {
         (window as any).setActiveTab(polishedTabButton);
       }
 
     } catch (error: any) {
-      console.error("Error puliendo texto con Gemini:", error);
-      this.updateStatus(`Error de Gemini al pulir: ${error.message || 'Desconocido'}`, "error", 5000);
+      // El error ya se muestra en callNetlifyFunction o getPolishedNoteFromText
+      console.error("Error al pulir texto:", error);
     }
   }
 
   private async getPolishedNoteFromText(text: string, mode: PolishMode, customPrompt?: string): Promise<{html: string, markdown: string}> {
-    let prompt = "";
-    const commonInstructions = "Formatea la respuesta usando Markdown. Asegúrate de que la respuesta esté en español."
-
-    switch (mode) {
-      case "concise_summary":
-        prompt = `Resume el siguiente texto de forma concisa y clara. Enfócate en las ideas principales. ${commonInstructions}\n\nTexto:\n${text}`;
-        break;
-      case "bullet_points":
-        prompt = `Extrae los puntos clave del siguiente texto y preséntalos como una lista de viñetas. ${commonInstructions}\n\nTexto:\n${text}`;
-        break;
-      case "formal_tone":
-        prompt = `Reformula el siguiente texto para que tenga un tono más formal y profesional, manteniendo el significado original. ${commonInstructions}\n\nTexto:\n${text}`;
-        break;
-      case "custom":
-        if (!customPrompt || customPrompt.trim() === "") {
-          throw new Error("El prompt personalizado no puede estar vacío para el modo personalizado.");
-        }
-        // Assuming customPrompt already includes instructions for language and markdown if needed, or Gemini infers.
-        // We add a fallback for Spanish if not specified.
-        const customPromptFinal = customPrompt.toLowerCase().includes("español") || customPrompt.toLowerCase().includes("spanish") 
-            ? customPrompt 
-            : `${customPrompt}\nAsegúrate de que la respuesta esté en español si el texto de entrada lo está.`;
-        prompt = `${customPromptFinal}\n\nTexto de referencia (si es necesario para el prompt):\n${text}`;
-        break;
-      case "standard":
-      default:
-        prompt = `Take this raw transcript and create a well-formatted, polished note.
-Eliminate filler words (ums, uhs, likes), repetitions, and false starts.
-Correctly format any lists or bullet points. Use markdown formatting for headings, lists, etc.
-Retain all original content and meaning.
-Ensure the response is in Spanish if the input text is in Spanish.
-
-Raw Transcript:
-${text}`;
-        break;
-    }
-
     try {
-        const geminiResponse = await this.genAI.models.generateContent({
-            model: MODEL_NAME,
-            contents: prompt
+        const response = await this.callNetlifyFunction({
+            action: "polish",
+            text: text,
+            polishMode: mode,
+            customPolishPrompt: customPrompt
         });
-        
-        const textFromResult = geminiResponse.text;
-        const polishedMarkdown = typeof textFromResult === 'string' ? textFromResult : await textFromResult;
 
-        if (!polishedMarkdown || polishedMarkdown.trim() === "") {
+        if (!response.polishedMarkdown || response.polishedMarkdown.trim() === "") {
             return { html: "<p>Gemini no generó contenido pulido.</p>", markdown: "" };
         }
-        const html = this.markdownParser.parse(polishedMarkdown) as string;
-        return { html, markdown: polishedMarkdown };
+        const html = this.markdownParser.parse(response.polishedMarkdown) as string;
+        return { html, markdown: response.polishedMarkdown };
 
     } catch (error: any) {
-        console.error("Error en getPolishedNoteFromText con Gemini:", error);
-        throw new Error(`Error de Gemini: ${error.message || 'Desconocido'}`);
+        // El error ya se muestra en callNetlifyFunction
+        throw new Error(`Error obteniendo nota pulida: ${error.message || 'Desconocido'}`);
     }
   }
 
@@ -1617,7 +1568,6 @@ ${text}`;
         this.recordingStatus.className = "status-text"; 
       }, duration);
     } else if (type === "active") {
-        // For 'active' messages, don't auto-hide unless a duration is explicitly set for it to act like a temporary notice
         if (duration !== Infinity && duration > 0) {
              this.statusClearTimeout = window.setTimeout(() => {
                 this.recordingStatus.className = "status-text"; 
