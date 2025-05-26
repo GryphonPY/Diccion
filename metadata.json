@@ -1,0 +1,8 @@
+{
+  "name": "diccion 2 jaja",
+  "description": "Captura, transcribe y pule audio sin esfuerzo con Gemini. Sube archivos, elige modos de pulido, gestiona tu historial de notas y más. Convierte grabaciones extensas en notas perfectas.",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "prompt": ""
+}
