@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>App de Dictado Avanzada</title>
+    <link rel="stylesheet" href="index.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script type="importmap">
+      {
+        "imports": {
+          "@google/genai": "https://esm.sh/@google/genai@^0.8.0",
+          "marked": "https://esm.sh/marked@^4.0.0"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div class="app-container">
+      <div class="main-content">
+        <div class="note-area">
+          <div class="note-header">
+            <div class="title-container">
+              <div class="editor-title" contenteditable="true" placeholder="Nota sin Título" aria-label="Título de la nota">
+                Nota sin Título
+              </div>
+              <div class="current-polish-mode-selector-container">
+                <span>Pulido: </span>
+                <select id="currentNotePolishModeSelect" aria-label="Seleccionar modo de pulido actual">
+                  <option value="standard">Estándar</option>
+                  <option value="concise_summary">Resumen Conciso</option>
+                  <option value="bullet_points">Puntos Clave</option>
+                  <option value="formal_tone">Tono Formal</option>
+                  <option value="custom">Prompt Personalizado...</option>
+                </select>
+              </div>
+            </div>
+            <div class="tab-navigation-container">
+              <div class="tab-navigation" role="tablist">
+                <button class="tab-button active" data-tab="note" role="tab" aria-controls="polishedNoteContainer" aria-selected="true">Pulida</button>
+                <button class="tab-button" data-tab="raw" role="tab" aria-controls="rawTranscriptionContainer" aria-selected="false">Borrador</button>
+                <div class="active-tab-indicator" aria-hidden="true"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="note-content-wrapper">
+            <div id="polishedNoteContainer" class="content-container" role="tabpanel" aria-labelledby="tab-note">
+                <button id="topCopyPolishedButton" class="top-right-content-action-button" title="Copiar Nota Pulida" aria-label="Copiar nota pulida desde la esquina superior">
+                    <i class="fas fa-copy"></i>
+                </button>
+                <div
+                  id="polishedNote"
+                  class="note-content active"
+                  contenteditable="true"
+                  placeholder="Tus notas pulidas aparecerán aquí..."
+                  aria-label="Contenido de la nota pulida"
+                ></div>
+                <div class="content-meta">
+                    <div id="polishedCounters" class="word-char-counters" aria-live="polite"></div>
+                    <div class="content-actions">
+                        <button class="content-action-button" id="copyPolishedButton" title="Copiar Nota Pulida" aria-label="Copiar nota pulida">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                        <button class="content-action-button" id="exportPolishedTxtButton" title="Exportar Nota Pulida como TXT" aria-label="Exportar nota pulida como TXT">
+                            <i class="fas fa-file-alt"></i> TXT
+                        </button>
+                        <button class="content-action-button" id="exportPolishedMdButton" title="Exportar Nota Pulida como Markdown" aria-label="Exportar nota pulida como Markdown">
+                            <i class="fab fa-markdown"></i> MD
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div id="rawTranscriptionContainer" class="content-container" role="tabpanel" aria-labelledby="tab-raw">
+                <div
+                  id="rawTranscription"
+                  class="note-content"
+                  contenteditable="true"
+                  placeholder="La transcripción en bruto aparecerá aquí..."
+                  aria-label="Contenido de la transcripción en bruto"
+                ></div>
+                 <div class="content-meta">
+                    <div id="rawCounters" class="word-char-counters" aria-live="polite"></div>
+                    <div class="content-actions">
+                        <button class="content-action-button" id="copyRawButton" title="Copiar Transcripción en Bruto" aria-label="Copiar transcripción en bruto">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                        <button class="content-action-button" id="exportRawTxtButton" title="Exportar Borrador como TXT" aria-label="Exportar borrador como TXT">
+                            <i class="fas fa-file-alt"></i> TXT
+                        </button>
+                        <button class="content-action-button" id="exportRawMdButton" title="Exportar Borrador como Markdown" aria-label="Exportar borrador como Markdown">
+                            <i class="fab fa-markdown"></i> MD
+                        </button>
+                    </div>
+                </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="recording-interface">
+          <div id="liveRecordingTitle" class="live-recording-title" style="display: none">
+            Grabando
+          </div>
+          <canvas id="liveWaveformCanvas" style="display: none" aria-label="Visualizador de forma de onda en vivo"></canvas>
+          <div id="liveRecordingTimerDisplay" class="live-recording-timer" style="display: none" aria-live="off">
+            00:00.00
+          </div>
+
+          <div class="status-indicator" role="status" aria-live="assertive">
+            <span id="recordingStatus" class="status-text">Lista para grabar</span>
+          </div>
+
+          <div class="recording-controls">
+             <button class="action-button" id="historyButton" title="Mostrar/Ocultar Historial" aria-label="Mostrar u ocultar historial de notas" aria-expanded="false">
+              <i class="fas fa-history"></i>
+            </button>
+            <button class="action-button" id="themeToggleButton" title="Cambiar Tema" aria-label="Cambiar tema claro/oscuro">
+              <i class="fas fa-sun"></i>
+            </button>
+            <input type="file" id="audioUploadInput" accept=".m4a,.mp4,.mp3,.wav,.aac,.ogg,.flac,.aiff" style="display: none;" aria-hidden="true">
+            <button class="action-button" id="audioUploadButton" title="Subir Archivo de Audio" aria-label="Subir archivo de audio">
+                <i class="fas fa-upload"></i>
+            </button>
+
+            <button id="recordButton" class="record-button" title="Iniciar/Detener Grabación" aria-label="Iniciar o detener grabación">
+              <div class="record-button-inner">
+                <i class="fas fa-microphone"></i>
+              </div>
+              <svg class="record-waves" viewBox="0 0 200 200" aria-hidden="true">
+                <circle class="wave wave1" cx="100" cy="100" r="40" />
+                <circle class="wave wave2" cx="100" cy="100" r="70" />
+                <circle class="wave wave3" cx="100" cy="100" r="100" />
+              </svg>
+              <span class="record-text">Grabar</span>
+            </button>
+
+            <button class="action-button" id="newButton" title="Nueva Nota" aria-label="Crear nueva nota">
+              <i class="fas fa-file"></i>
+            </button>
+            <button class="action-button" id="polishTextButton" title="Pulir texto en Borrador" aria-label="Pulir texto en bruto (modo actual)">
+                <i class="fas fa-wand-magic-sparkles"></i>
+            </button>
+            <button class="action-button" id="retryPolishButton" title="Reintentar Pulido con Opciones" aria-label="Reintentar pulido con otras opciones">
+                <i class="fas fa-redo"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="historyPanel" class="history-panel" aria-labelledby="historyPanelTitle">
+        <div class="history-panel-header">
+          <h3 id="historyPanelTitle">Historial de Notas</h3>
+          <div class="history-actions">
+            <input type="file" id="importHistoryInput" accept=".json" style="display:none;" aria-hidden="true">
+            <button id="importHistoryButton" class="history-header-button" title="Importar Historial" aria-label="Importar historial de notas desde archivo JSON">
+                <i class="fas fa-file-import"></i>
+            </button>
+            <button id="exportHistoryButton" class="history-header-button" title="Exportar Historial" aria-label="Exportar historial de notas a archivo JSON">
+                <i class="fas fa-file-export"></i>
+            </button>
+            <button id="closeHistoryPanelButton" class="close-panel-button" aria-label="Cerrar panel de historial">&times;</button>
+          </div>
+        </div>
+        <input type="text" id="historySearchInput" placeholder="Buscar notas..." class="history-search" aria-label="Buscar en historial de notas">
+        <ul id="historyList" class="history-list" aria-label="Lista de notas guardadas">
+          <!-- Las notas del historial se listarán aquí -->
+        </ul>
+      </div>
+    </div>
+
+    <div id="polishOptionsModal" class="modal-overlay" style="display: none;" role="dialog" aria-labelledby="polishOptionsModalTitle" aria-modal="true">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 id="polishOptionsModalTitle">Opciones de Pulido</h4>
+          <button id="closePolishOptionsModalButton" class="close-modal-button" aria-label="Cerrar opciones de pulido">&times;</button>
+        </div>
+        <div class="modal-body">
+          <label for="polishModeSelect">Modo de Pulido:</label>
+          <select id="polishModeSelect" aria-label="Seleccionar modo de pulido">
+            <option value="standard">Estándar</option>
+            <option value="concise_summary">Resumen Conciso</option>
+            <option value="bullet_points">Puntos Clave (Viñetas)</option>
+            <option value="formal_tone">Tono Formal</option>
+            <option value="custom">Prompt Personalizado</option>
+          </select>
+
+          <div id="customPromptTemplateContainer" style="display: none;">
+            <label for="customPromptTemplateSelect">Plantillas de Prompt:</label>
+            <select id="customPromptTemplateSelect" aria-label="Seleccionar plantilla de prompt personalizado">
+                <!-- Las plantillas se cargarán aquí por JS -->
+            </select>
+          </div>
+
+          <div id="customPromptContainer" style="display: none;">
+            <label for="customPromptTextarea">Prompt Personalizado:</label>
+            <textarea id="customPromptTextarea" rows="4" placeholder="Ej: Resume este texto en 3 frases clave para un email." aria-label="Ingresar prompt personalizado"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="applyPolishOptionsButton" class="button-primary">Aplicar y Pulir</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="confirmDeleteModal" class="modal-overlay" style="display: none;" role="dialog" aria-labelledby="confirmDeleteModalTitle" aria-modal="true">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 id="confirmDeleteModalTitle">Confirmar Eliminación</h4>
+                <!-- No close button in header, actions are explicit -->
+            </div>
+            <div class="modal-body">
+                <p id="confirmDeleteModalMessage">¿Estás seguro?</p>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button id="confirmDeleteCancelButton" class="button-secondary">Cancelar</button>
+                <button id="confirmDeleteConfirmButton" class="button-danger">Confirmar Eliminación</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="confirmAudioUploadModal" class="modal-overlay" style="display: none;" role="dialog" aria-labelledby="confirmAudioUploadModalTitle" aria-modal="true">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 id="confirmAudioUploadModalTitle">Confirmar Carga de Archivo de Audio</h4>
+            </div>
+            <div class="modal-body">
+                <p id="confirmAudioUploadModalMessage">La nota actual ya tiene contenido. ¿Qué deseas hacer?</p>
+            </div>
+            <div class="modal-footer" style="display: flex; flex-direction: column; gap: 10px;">
+                <button id="confirmAudioUploadOverwriteButton" class="button-danger">Sobrescribir Nota Actual</button>
+                <button id="confirmAudioUploadCreateNewButton" class="button-primary">Crear Nueva Nota para Audio</button>
+                <button id="confirmAudioUploadCancelButton" class="button-secondary">Cancelar Carga</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const tabNav = document.querySelector(".tab-navigation");
+        const tabButtons = tabNav.querySelectorAll(".tab-button");
+        const activeTabIndicator = tabNav.querySelector(".active-tab-indicator");
+        
+        window.setActiveTab = function setActiveTab(activeButton, skipAnimation = false) {
+          if (!activeButton || !activeTabIndicator) return;
+
+          tabButtons.forEach((btn) => {
+            btn.classList.remove("active");
+            btn.setAttribute("aria-selected", "false");
+            const controlledPanelId = btn.getAttribute("aria-controls");
+            if (controlledPanelId) {
+                const panel = document.getElementById(controlledPanelId);
+                if (panel) panel.classList.remove("active");
+            }
+          });
+          activeButton.classList.add("active");
+          activeButton.setAttribute("aria-selected", "true");
+
+
+          const tabName = activeButton.getAttribute("data-tab");
+          const polishedNoteContentContainer = document.getElementById("polishedNoteContainer"); 
+          const rawTranscriptionContentContainer = document.getElementById("rawTranscriptionContainer");
+
+
+          if (tabName === "raw") {
+            if(rawTranscriptionContentContainer) rawTranscriptionContentContainer.classList.add("active");
+            if(polishedNoteContentContainer) polishedNoteContentContainer.classList.remove("active");
+          } else { // 'note' or any other default
+            if(polishedNoteContentContainer) polishedNoteContentContainer.classList.add("active");
+            if(rawTranscriptionContentContainer) rawTranscriptionContentContainer.classList.remove("active");
+          }
+
+          const originalTransition = activeTabIndicator.style.transition;
+          if (skipAnimation) {
+            activeTabIndicator.style.transition = "none";
+          } else {
+            activeTabIndicator.style.transition = ""; 
+          }
+
+          activeTabIndicator.style.left = `${activeButton.offsetLeft}px`;
+          activeTabIndicator.style.width = `${activeButton.offsetWidth}px`;
+
+          if (skipAnimation) {
+            activeTabIndicator.offsetHeight; 
+            activeTabIndicator.style.transition = originalTransition;
+          }
+        }
+        
+        tabButtons.forEach((button) => {
+          button.addEventListener("click", (e) => {
+            window.setActiveTab(e.currentTarget);
+          });
+        });
+        
+        const initiallyActiveButton = tabNav.querySelector(".tab-button.active");
+        if (initiallyActiveButton) {
+           const polishedNoteContentContainer = document.getElementById("polishedNoteContainer"); 
+           const rawTranscriptionContentContainer = document.getElementById("rawTranscriptionContainer");
+           if (initiallyActiveButton.getAttribute('data-tab') === 'note') {
+                if(polishedNoteContentContainer) polishedNoteContentContainer.classList.add('active');
+                if(rawTranscriptionContentContainer) rawTranscriptionContentContainer.classList.remove('active');
+           } else {
+                if(rawTranscriptionContentContainer) rawTranscriptionContentContainer.classList.add('active');
+                if(polishedNoteContentContainer) polishedNoteContentContainer.classList.remove('active');
+           }
+
+          requestAnimationFrame(() => { 
+            window.setActiveTab(initiallyActiveButton, true);
+          });
+        }
+
+
+        window.addEventListener("resize", () => {
+          requestAnimationFrame(() => {
+            const currentActiveButton = tabNav.querySelector(".tab-button.active");
+            if (currentActiveButton) {
+              window.setActiveTab(currentActiveButton, true);
+            }
+          });
+        });
+      });
+    </script>
+  </body>
+</html><link rel="stylesheet" href="index.css">
+<script src="index.tsx" type="module"></script>
