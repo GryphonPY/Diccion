@@ -1,0 +1,45 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main # O la rama principal que uses (ej. master)
+
+permissions:
+  contents: write # Necesario para que la acción pueda escribir en la rama gh-pages
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Puedes ajustar la versión de Node.js
+
+      # Instalar esbuild (la herramienta para compilar tu .tsx)
+      - name: Install esbuild
+        run: npm install --save-dev esbuild
+
+      # Compilar index.tsx a JavaScript, inyectando la API_KEY
+      # Esto reemplazará process.env.API_KEY con el valor real del secreto
+      - name: Build TypeScript and Inject API Key
+        run: |
+          mkdir -p dist
+          npx esbuild index.tsx --bundle --outfile=dist/index.js --format=esm --define:process.env.API_KEY="'${{ secrets.GEMINI_API_KEY }}'" --loader:.ts=tsx
+
+      # Modificar index.html para que apunte al archivo JS compilado
+      - name: Update index.html script path
+        run: sed -i 's|src="./index.tsx"|src="./dist/index.js"|g' index.html
+
+      # Desplegar los archivos a la rama gh-pages
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: . # Publica todo el contenido del repositorio (index.html, index.css, dist/ etc.)
+          # Si todos tus archivos de salida estuvieran DENTRO de la carpeta 'dist',
+          # incluyendo index.html, entonces usarías publish_dir: ./dist
