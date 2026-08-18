@@ -2,44 +2,47 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches:
-      - main # O la rama principal que uses (ej. master)
+    branches: ["main"]
+  workflow_dispatch:
 
 permissions:
-  contents: write # Necesario para que la acción pueda escribir en la rama gh-pages
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
   build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20' # Puedes ajustar la versión de Node.js
+          node-version: 20
 
-      # Instalar esbuild (la herramienta para compilar tu .tsx)
-      - name: Install esbuild
-        run: npm install --save-dev esbuild
+      - name: Install dependencies
+        run: npm install
 
-      # Compilar index.tsx a JavaScript, inyectando la API_KEY
-      # Esto reemplazará process.env.API_KEY con el valor real del secreto
-      - name: Build TypeScript and Inject API Key
-        run: |
-          mkdir -p dist
-          npx esbuild index.tsx --bundle --outfile=dist/index.js --format=esm --define:process.env.API_KEY="'${{ secrets.GEMINI_API_KEY }}'" --loader:.ts=tsx
+      - name: Build Vite App
+        run: npm run build
 
-      # Modificar index.html para que apunte al archivo JS compilado
-      - name: Update index.html script path
-        run: sed -i 's|src="./index.tsx"|src="./dist/index.js"|g' index.html
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
 
-      # Desplegar los archivos a la rama gh-pages
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: . # Publica todo el contenido del repositorio (index.html, index.css, dist/ etc.)
-          # Si todos tus archivos de salida estuvieran DENTRO de la carpeta 'dist',
-          # incluyendo index.html, entonces usarías publish_dir: ./dist
+          path: './dist'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
