@@ -1411,14 +1411,13 @@ class App {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: response.statusText }));
-        throw new Error(errorData.error || `Error del servidor: ${response.status}`);
+        throw new Error("IA no disponible en este host");
       }
       return await response.json();
     } catch (error: any) {
-       console.error("Error llamando a la función Netlify:", error);
-       this.updateStatus(`Error de comunicación: ${error.message}`, "error", 5000);
-       throw error;
+       console.warn("Función de IA en mantenimiento:", error);
+       this.updateStatus("⚠️ Módulo de IA en mantenimiento. El editor y grabadora local siguen activos.", "active", 6000);
+       throw new Error("Módulo de IA temporalmente pausado.");
     }
   }
 
